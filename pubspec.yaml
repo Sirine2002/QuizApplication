@@ -84,6 +84,7 @@ flutter:
     - assets/images/background2.png
     - assets/sounds/vrai.mp3
     - assets/sounds/faux.mp3
+    - assets/sounds/done.mp3
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

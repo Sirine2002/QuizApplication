@@ -33,12 +33,22 @@ class _QuestionPageState extends State<QuestionPage> {
     final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     quizArgs = args;
     categoryName = args['category'];
-    _fetchQuestions(
-      category: args['categoryId'],
-      difficulty: args['difficulty'],
-      type: args['type'],
-      amount: args['amount'],
-    );
+
+    // Check if questions are passed
+    if (args.containsKey('questions') && args['questions'] != null) {
+      setState(() {
+        questions = args['questions'];
+        isLoading = false;
+      });
+      _startTimer();
+    } else {
+      _fetchQuestions(
+        category: args['categoryId'],
+        difficulty: args['difficulty'],
+        type: args['type'],
+        amount: args['amount'],
+      );
+    }
   }
 
   Future<void> _fetchQuestions({
@@ -125,6 +135,11 @@ class _QuestionPageState extends State<QuestionPage> {
             totalQuestions: questions.length,
             correct: correctCount,
             wrong: incorrectCount,
+            categoryId: quizArgs?['categoryId'],
+            difficulty: quizArgs?['difficulty'],
+            type: quizArgs?['type'],
+            amount: quizArgs?['amount'],
+            questions: questions, // Pass the questions
           ),
         ),
       );
@@ -270,7 +285,6 @@ class _QuestionPageState extends State<QuestionPage> {
     if (!answers.contains(current['correct_answer'])) {
       answers.add(current['correct_answer']);
     }
-
 
     current['answers'] = answers;
 

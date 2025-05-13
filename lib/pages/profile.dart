@@ -296,7 +296,7 @@ class ProfilePageState extends State<ProfilePage> {
                   return Center(child: Text('Erreur : ${snapshot.error}'));
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text('Aucun historique trouvé'));
+                  return const Center(child: Text('No history found'));
                 }
 
                 final scores = snapshot.data!.docs;
@@ -339,7 +339,7 @@ class ProfilePageState extends State<ProfilePage> {
                   return Center(child: Text('Erreur : ${snapshot.error}'));
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text('Aucun score trouvé'));
+                  return const Center(child: Text('No score found'));
                 }
 
                 // Regrouper les scores par catégorie et garder le plus récent

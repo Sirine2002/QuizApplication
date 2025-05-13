@@ -1,3 +1,4 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -9,10 +10,11 @@ class CompletedQuizPage extends StatefulWidget {
   final int correct;
   final int wrong;
   final String? category;
-  final int? categoryId; // Added
-  final String? difficulty; // Added
-  final String? type; // Added
-  final int? amount; // Added
+  final int? categoryId;
+  final String? difficulty;
+  final String? type;
+  final int? amount;
+  final List<dynamic>? questions;
 
   const CompletedQuizPage({
     super.key,
@@ -25,27 +27,47 @@ class CompletedQuizPage extends StatefulWidget {
     this.difficulty,
     this.type,
     this.amount,
-  });
+    this.questions,
+  }) : assert(score != null, 'Score cannot be null'),
+        assert(totalQuestions != null, 'TotalQuestions cannot be null'),
+        assert(correct != null, 'Correct cannot be null'),
+        assert(wrong != null, 'Wrong cannot be null');
 
   @override
   CompletedQuizPageState createState() => CompletedQuizPageState();
 }
 
 class CompletedQuizPageState extends State<CompletedQuizPage> {
+  late AudioPlayer _audioPlayer;
+
   @override
   void initState() {
     super.initState();
-    // Sauvegarde automatique du score après le rendu initial
+    // Initialize AudioPlayer
+    _audioPlayer = AudioPlayer();
+    // Play bell.mp3 after initial render
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _playBellSound();
       _saveOrUpdateScoreToFirestore(context);
     });
+  }
+
+  Future<void> _playBellSound() async {
+    try {
+      await _audioPlayer.play(AssetSource('sounds/done.mp3'));
+    } catch (e) {
+      debugPrint('Error playing audio: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error playing sound')),
+      );
+    }
   }
 
   Future<void> _saveOrUpdateScoreToFirestore(BuildContext context) async {
     try {
       if (widget.category == null || widget.category!.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur : Catégorie non spécifiée')),
+          const SnackBar(content: Text('Error: Category not specified')),
         );
         return;
       }
@@ -53,14 +75,14 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
       final userId = FirebaseAuth.instance.currentUser?.uid;
       if (userId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur : Aucun utilisateur connecté')),
+          const SnackBar(content: Text('Error: No user logged in')),
         );
         return;
       }
 
       final CollectionReference scores = FirebaseFirestore.instance.collection('scores');
 
-      // Rechercher un document existant pour la catégorie et l'utilisateur
+      // Check for existing score for this category and user
       final QuerySnapshot existingScores = await scores
           .where('category', isEqualTo: widget.category)
           .where('userId', isEqualTo: userId)
@@ -68,7 +90,7 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
           .get();
 
       if (existingScores.docs.isNotEmpty) {
-        // Mettre à jour le document existant
+        // Update existing document
         final docId = existingScores.docs.first.id;
         await scores.doc(docId).update({
           'score': widget.score,
@@ -78,7 +100,7 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
           'timestamp': FieldValue.serverTimestamp(),
         });
       } else {
-        // Créer un nouveau document
+        // Create new document
         await scores.add({
           'category': widget.category,
           'userId': userId,
@@ -90,23 +112,33 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
         });
       }
     } catch (e) {
-      // Message d'erreur plus précis
-      String errorMessage = 'Erreur lors de l\'enregistrement du score';
+      // Detailed error message
+      String errorMessage = 'Error saving score';
       if (e.toString().contains('permission-denied')) {
-        errorMessage = 'Erreur : Permission refusée. Vérifiez les règles Firestore.';
+        errorMessage = 'Error: Permission denied. Check Firestore rules.';
       } else if (e.toString().contains('network')) {
-        errorMessage = 'Erreur : Problème de connexion réseau.';
+        errorMessage = 'Error: Network connection issue.';
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(errorMessage)),
       );
-      debugPrint('Erreur Firestore : $e');
+      debugPrint('Firestore error: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    double completion = widget.totalQuestions == 0 ? 0 : (widget.correct + widget.wrong) / widget.totalQuestions;
+    // Safe completion calculation with debug logging
+    double completion = 0.0;
+    if (widget.totalQuestions == 0) {
+      debugPrint('Warning: totalQuestions is 0, setting completion to 0');
+      completion = 0.0;
+    } else if (widget.correct == null || widget.wrong == null) {
+      debugPrint('Warning: correct or wrong is null, setting completion to 0');
+      completion = 0.0;
+    } else {
+      completion = (widget.correct + widget.wrong) / widget.totalQuestions;
+    }
 
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
@@ -248,13 +280,21 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
     return InkWell(
       onTap: () {
         if (label == "Play Again") {
-          // Navigate to QuestionPage with the same parameters
+          // Log navigation arguments for debugging
+          debugPrint('Navigating to QuestionPage with: '
+              'category=${widget.category}, '
+              'categoryId=${widget.categoryId}, '
+              'difficulty=${widget.difficulty}, '
+              'type=${widget.type}, '
+              'amount=${widget.amount}, '
+              'questions=${widget.questions}');
           Navigator.pushNamed(context, '/QuestionPage', arguments: {
             'category': widget.category,
             'categoryId': widget.categoryId,
             'difficulty': widget.difficulty,
             'type': widget.type,
             'amount': widget.amount,
+            'questions': widget.questions,
           });
         } else if (label == "Home") {
           Navigator.pushNamed(context, '/HomePage');
@@ -285,5 +325,11 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
   }
 }

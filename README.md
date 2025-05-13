@@ -12,11 +12,6 @@ Une application mobile de quiz développée avec Flutter et Firebase. Elle perme
 - 🧠 Niveau de difficulté personnalisable
 - 💾 Sauvegarde des scores dans Firestore
 
-## 🖼️ Captures d'écran
-
-### 🏠 Accueil
-
-![Accueil](Login.png)
 ## 🛠️ Technologies utilisées
 
 - [Flutter](https://flutter.dev)

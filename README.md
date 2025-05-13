@@ -1,16 +1,33 @@
-# mini_projet
+# 📱 Flutter Quiz App
 
-A new Flutter project.
+Une application mobile de quiz développée avec Flutter et Firebase. Elle permet aux utilisateurs de répondre à des questions à choix multiple, de suivre leur score, et d'explorer différents sujets.
 
-## Getting Started
+## 🚀 Fonctionnalités
 
-This project is a starting point for a Flutter application.
+- 🧩 Questions dynamiques via l'API OpenTDB
+- 📊 Score automatique et statistiques enregistrées
+- 🗂️ Catégories multiples (science, divertissement, etc.)
+- 📈 Historique de jeu et profil utilisateur
+- 🔐 Authentification avec Firebase (email et mot de passe)
+- 🧠 Niveau de difficulté personnalisable
+- 💾 Sauvegarde des scores dans Firestore
 
-A few resources to get you started if this is your first Flutter project:
+## 🖼️ Captures d'écran
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+> (Ajoute ici quelques images : page d'accueil, quiz, résultats, profil...)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 🛠️ Technologies utilisées
+
+- [Flutter](https://flutter.dev)
+- [Firebase Auth](https://firebase.google.com/products/auth)
+- [Cloud Firestore](https://firebase.google.com/products/firestore)
+- [OpenTDB API](https://opentdb.com)
+- [Google Fonts](https://pub.dev/packages/google_fonts)
+
+## 📦 Installation
+
+### 1. Cloner le projet
+
+```bash
+git clone https://github.com/<ton-nom-utilisateur>/flutter-quiz-app.git
+cd flutter-quiz-app

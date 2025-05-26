@@ -27,6 +27,12 @@ class _QuestionPageState extends State<QuestionPage> {
   Timer? _timer;
   int _timeRemaining = 30;
 
+  List<String> _shuffleAnswers(List<String> incorrectAnswers, String correctAnswer) {
+    final allAnswers = List<String>.from(incorrectAnswers)..add(correctAnswer);
+    allAnswers.shuffle();
+    return allAnswers;
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -34,8 +40,20 @@ class _QuestionPageState extends State<QuestionPage> {
     quizArgs = args;
     categoryName = args['category'];
 
-    // Check if questions are passed
     if (args.containsKey('questions') && args['questions'] != null) {
+      // Shuffle answers only for multiple choice questions
+      for (var question in args['questions']) {
+        if (question['type'] == 'multiple') {
+          question['answers'] = _shuffleAnswers(
+              List<String>.from(question['incorrect_answers']),
+              question['correct_answer']
+          );
+        } else {
+          // Keep True/False in original order
+          question['answers'] = ['True', 'False'];
+        }
+      }
+
       setState(() {
         questions = args['questions'];
         isLoading = false;
@@ -64,6 +82,19 @@ class _QuestionPageState extends State<QuestionPage> {
       final data = jsonDecode(response.body);
 
       if (data['response_code'] == 0) {
+        // Shuffle answers only for multiple choice questions
+        for (var question in data['results']) {
+          if (question['type'] == 'multiple') {
+            question['answers'] = _shuffleAnswers(
+                List<String>.from(question['incorrect_answers']),
+                question['correct_answer']
+            );
+          } else {
+            // Keep True/False in original order
+            question['answers'] = ['True', 'False'];
+          }
+        }
+
         setState(() {
           questions = data['results'];
           isLoading = false;
@@ -139,7 +170,7 @@ class _QuestionPageState extends State<QuestionPage> {
             difficulty: quizArgs?['difficulty'],
             type: quizArgs?['type'],
             amount: quizArgs?['amount'],
-            questions: questions, // Pass the questions
+            questions: questions,
           ),
         ),
       );
@@ -281,12 +312,7 @@ class _QuestionPageState extends State<QuestionPage> {
   List<Widget> _buildMultipleChoices() {
     final unescape = HtmlUnescape();
     final current = questions[currentQuestionIndex];
-    List<String> answers = List<String>.from(current['incorrect_answers']);
-    if (!answers.contains(current['correct_answer'])) {
-      answers.add(current['correct_answer']);
-    }
-
-    current['answers'] = answers;
+    final answers = current['answers'];
 
     return List.generate(answers.length, (index) {
       final answer = unescape.convert(answers[index]);
@@ -339,7 +365,6 @@ class _QuestionPageState extends State<QuestionPage> {
 
   List<Widget> _buildBooleanChoices() {
     final current = questions[currentQuestionIndex];
-    current['answers'] = ['True', 'False'];
     return _buildMultipleChoices();
   }
 }

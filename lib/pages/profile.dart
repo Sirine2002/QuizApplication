@@ -187,7 +187,7 @@ class ProfilePageState extends State<ProfilePage> {
         children: [
           // En-tête
           Container(
-            height: 180,
+            height: 230,
             decoration: const BoxDecoration(
               color: Colors.lightBlueAccent,
               borderRadius: BorderRadius.only(
@@ -222,10 +222,13 @@ class ProfilePageState extends State<ProfilePage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const CircleAvatar(
-                        radius: 40,
-                        backgroundColor: Colors.white,
-                        child: Icon(Icons.person, size: 45, color: Colors.lightBlueAccent),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 70), // Move the avatar down by 10 pixels
+                        child: const CircleAvatar(
+                          radius: 40,
+                          backgroundColor: Colors.white,
+                          child: Icon(Icons.person, size: 45, color: Colors.lightBlueAccent),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       Text(
@@ -265,7 +268,7 @@ class ProfilePageState extends State<ProfilePage> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                     ),
                     child: Text(
-                       "History",
+                      "History",
                       style: GoogleFonts.poppins(color: Colors.white),
                     ),
                   ),

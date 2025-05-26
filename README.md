@@ -20,6 +20,7 @@ Une application mobile de quiz développée avec Flutter et Firebase. Elle perme
 - [OpenTDB API](https://opentdb.com)
 - [Google Fonts](https://pub.dev/packages/google_fonts)
 
+<<<<<<< HEAD
 ## 📦 Installation
 
 ### 1. Cloner le projet
@@ -27,3 +28,5 @@ Une application mobile de quiz développée avec Flutter et Firebase. Elle perme
 ```bash
 git clone https://github.com/<ton-nom-utilisateur>/flutter-quiz-app.git
 cd flutter-quiz-app
+=======
+>>>>>>> f55635b (suffle)

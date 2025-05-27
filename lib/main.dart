@@ -20,7 +20,7 @@ Future<void> main() async {
 }
 
 class MyApp extends StatelessWidget {
-  //les routes:
+  //des routes
   final routes = {
     '/Quiz': (context) => Page0(),
     '/GetStartedPage': (context) => const GetStartedPage(),

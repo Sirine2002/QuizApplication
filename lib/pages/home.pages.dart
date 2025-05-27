@@ -59,6 +59,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     fetchCategories();
     getUsernameFromFirestore();
+
   }
 
   Future<void> getUsernameFromFirestore() async {

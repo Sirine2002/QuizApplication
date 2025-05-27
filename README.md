@@ -1,6 +1,6 @@
 # 📱 Flutter Quiz App
 
-Une application mobile de quiz développée avec Flutter et Firebase. Elle permet aux utilisateurs de répondre à des questions à choix multiple, de suivre leur score, et d'explorer différents sujets.
+Une application mobile de quiz développée avec Flutter et Firebase. Elle permet aux utilisateurs de répondre à des questions à choix multiple, de suivre leur score, et d'explorer différents sujets .
 
 ## 🚀 Fonctionnalités
 

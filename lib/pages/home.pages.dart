@@ -7,7 +7,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mini_projet/menu/drawer.widget.dart';
 import 'package:mini_projet/pages/profile.dart';
 import 'package:mini_projet/pages/quiz_page.dart';
-
+import 'package:mini_projet/pages/services/vibration_service.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
   static String id = "/HomePage";
@@ -53,13 +55,50 @@ class _HomePageState extends State<HomePage> {
   String? username;
   String selectedCategory = '';
   int? selectedCategoryId;
+  String _currentLanguage = 'en'; // 'en' ou 'fr'
+
+  // Dictionnaire pour les traductions
+  final Map<String, Map<String, String>> _translations = {
+    'en': {
+      'hello': 'Hello',
+      'lets_test': "Let's test your knowledge",
+      'search': 'Search',
+      'popular': 'Popular',
+      'entertainment': 'Entertainment',
+      'science': 'Science',
+      'start_quiz': 'Start Quiz',
+      'select_category': 'Please select a category to start the quiz',
+    },
+    'fr': {
+      'hello': 'Bonjour',
+      'lets_test': "Testons vos connaissances",
+      'search': 'Rechercher',
+      'popular': 'Populaire',
+      'entertainment': 'Divertissement',
+      'science': 'Science',
+      'start_quiz': 'Commencer le quiz',
+      'select_category': 'Veuillez sélectionner une catégorie pour commencer le quiz',
+    },
+  };
+
+  String _translate(String key) {
+    return _translations[_currentLanguage]?[key] ?? key;
+  }
 
   @override
   void initState() {
     super.initState();
+    VibrationService.init();
     fetchCategories();
     getUsernameFromFirestore();
+    _loadLanguagePreference();
+  }
 
+  Future<void> _loadLanguagePreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _currentLanguage = prefs.getString('language') ?? 'en';
+    });
   }
 
   Future<void> getUsernameFromFirestore() async {
@@ -79,7 +118,7 @@ class _HomePageState extends State<HomePage> {
       final List<dynamic> categoryList = data['trivia_categories'];
 
       for (var category in categoryList) {
-        String categoryName = category['name']; // nom complet avec :
+        String categoryName = category['name'];
         int categoryId = category['id'];
 
         categoryNameToId[categoryName] = categoryId;
@@ -93,7 +132,7 @@ class _HomePageState extends State<HomePage> {
         }
 
         if (!categoryColors.containsKey(categoryName)) {
-          categoryColors[categoryName] = _getFixedColor( categoryName.contains(':') ? categoryName.split(':')[1].trim() : categoryName);
+          categoryColors[categoryName] = _getFixedColor(categoryName.contains(':') ? categoryName.split(':')[1].trim() : categoryName);
         }
       }
 
@@ -126,10 +165,12 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        backgroundColor: Colors.grey.shade100,
+        backgroundColor: isDarkMode ? Colors.grey[900] : Colors.grey.shade100,
         drawer: CustomDrawer(
           username: username,
           email: FirebaseAuth.instance.currentUser?.email ?? "quizzo@example.com",
@@ -137,14 +178,14 @@ class _HomePageState extends State<HomePage> {
         body: SafeArea(
           child: Column(
             children: [
-              _buildCustomAppBar(context),
-              _buildSearchAndTabs(),
+              _buildCustomAppBar(context, isDarkMode),
+              _buildSearchAndTabs(isDarkMode),
               Expanded(
                 child: TabBarView(
                   children: [
-                    _buildCategoryList(popularCategories),
-                    _buildCategoryList(entertainmentCategories),
-                    _buildCategoryList(scienceCategories),
+                    _buildCategoryList(popularCategories, isDarkMode),
+                    _buildCategoryList(entertainmentCategories, isDarkMode),
+                    _buildCategoryList(scienceCategories, isDarkMode),
                   ],
                 ),
               ),
@@ -153,26 +194,34 @@ class _HomePageState extends State<HomePage> {
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
+                      await VibrationService.vibrate();
                       if (selectedCategory.isNotEmpty && selectedCategoryId != null) {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => QuizPage(
-                              category: selectedCategory, // nom complet ex: "Science: Computers"
+                              category: selectedCategory,
                               categoryId: selectedCategoryId!,
                             ),
                           ),
                         );
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Please select a category to start the quiz")),
+                          SnackBar(
+                            content: Text(_translate('select_category')),
+                            backgroundColor: isDarkMode ? Colors.grey[800] : Colors.white,
+                          ),
                         );
                       }
                     },
                     child: Text(
-                      "Start Quiz",
-                      style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+                      _translate('start_quiz'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: 16),
@@ -180,7 +229,6 @@ class _HomePageState extends State<HomePage> {
                         borderRadius: BorderRadius.circular(30),
                       ),
                       backgroundColor: Colors.amber,
-                      foregroundColor: Colors.white,
                     ),
                   ),
                 ),
@@ -192,15 +240,18 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildCustomAppBar(BuildContext context) {
+  Widget _buildCustomAppBar(BuildContext context, bool isDarkMode) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
       child: Row(
         children: [
           Builder(
             builder: (context) => IconButton(
-              icon: Icon(Icons.menu, color: Colors.amber, size: 30),
-              onPressed: () => Scaffold.of(context).openDrawer(),
+                icon: Icon(Icons.menu, color: Colors.amber, size: 30),
+                onPressed: () async {
+                  await VibrationService.vibrate();
+                  Scaffold.of(context).openDrawer();
+                }
             ),
           ),
           SizedBox(width: 10),
@@ -208,14 +259,20 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Hello, ${username ?? 'Guest'}",
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    )),
                 Text(
-                  "Let's test your knowledge",
-                  style: GoogleFonts.poppins(color: Colors.black54, fontSize: 13),
+                  "${_translate('hello')}, ${username ?? 'Guest'}",
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                ),
+                Text(
+                  _translate('lets_test'),
+                  style: GoogleFonts.poppins(
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
+                    fontSize: 13,
+                  ),
                 ),
               ],
             ),
@@ -224,9 +281,10 @@ class _HomePageState extends State<HomePage> {
             radius: 22,
             backgroundColor: Colors.amber,
             child: MouseRegion(
-              cursor: SystemMouseCursors.click, // Curseur "main"
+              cursor: SystemMouseCursors.click,
               child: GestureDetector(
-                onTap: () {
+                onTap: () async {
+                  await VibrationService.vibrate();
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => ProfilePage()),
@@ -241,7 +299,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildSearchAndTabs() {
+  Widget _buildSearchAndTabs(bool isDarkMode) {
     return Column(
       children: [
         Padding(
@@ -254,33 +312,35 @@ class _HomePageState extends State<HomePage> {
               });
             },
             decoration: InputDecoration(
-              hintText: 'Search',
-              prefixIcon: Icon(Icons.search),
+              hintText: _translate('search'),
+              hintStyle: TextStyle(color: isDarkMode ? Colors.white70 : Colors.black54),
+              prefixIcon: Icon(Icons.search, color: isDarkMode ? Colors.white70 : Colors.black54),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: isDarkMode ? Colors.grey[800] : Colors.white,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
                 borderSide: BorderSide.none,
               ),
             ),
+            style: TextStyle(color: isDarkMode ? Colors.white : Colors.black87),
           ),
         ),
         TabBar(
           indicatorColor: Colors.lightBlueAccent,
           labelColor: Colors.lightBlueAccent,
-          unselectedLabelColor: Colors.black54,
+          unselectedLabelColor: isDarkMode ? Colors.white70 : Colors.black54,
           labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
           tabs: [
-            Tab(text: 'Popular'),
-            Tab(text: 'Entertainment'),
-            Tab(text: 'Science'),
+            Tab(text: _translate('popular')),
+            Tab(text: _translate('entertainment')),
+            Tab(text: _translate('science')),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildCategoryList(List<String> categories) {
+  Widget _buildCategoryList(List<String> categories, bool isDarkMode) {
     final filteredCategories = categories
         .where((cat) => cat.toLowerCase().contains(searchQuery))
         .toList();
@@ -299,7 +359,8 @@ class _HomePageState extends State<HomePage> {
         bool isSelected = selectedCategory == category;
 
         return InkWell(
-          onTap: () {
+          onTap: () async {
+            await VibrationService.vibrate();
             setState(() {
               selectedCategory = category;
               selectedCategoryId = categoryNameToId[category];
@@ -309,15 +370,19 @@ class _HomePageState extends State<HomePage> {
           child: Container(
             padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isSelected ? categoryColors[category]?.withOpacity(0.1) : Colors.white,
+              color: isSelected
+                  ? categoryColors[category]?.withOpacity(0.1)
+                  : isDarkMode ? Colors.grey[800] : Colors.white,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isSelected ? categoryColors[category]! : Colors.grey.shade300,
+                color: isSelected
+                    ? categoryColors[category]!
+                    : isDarkMode ? Colors.grey[700]! : Colors.grey.shade300,
                 width: 2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Colors.grey.withOpacity(isDarkMode ? 0.3 : 0.1),
                   blurRadius: 10,
                   offset: Offset(0, 4),
                 ),
@@ -339,7 +404,7 @@ class _HomePageState extends State<HomePage> {
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: isDarkMode ? Colors.white : Colors.black87,
                     ),
                   ),
                 ),

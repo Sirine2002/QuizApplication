@@ -1,0 +1,18 @@
+{
+  "settings": "Settings",
+  "account": "Account",
+  "profile": "Profile",
+  "change_password": "Change password",
+  "preferences": "Preferences",
+  "sounds": "Sounds",
+  "vibration": "Vibration",
+  "dark_mode": "Dark Mode",
+  "notifications": "Notifications",
+  "daily_reminder": "Daily Reminder",
+  "more": "More",
+  "language": "Language",
+  "country": "Country",
+  "logout": "Logout",
+  "notification_title": "Time to play Quizzo!",
+  "notification_body": "Test your knowledge and improve your skills!"
+}

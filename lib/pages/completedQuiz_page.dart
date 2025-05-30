@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:mini_projet/pages/services/theme_service.dart';
 
 class CompletedQuizPage extends StatefulWidget {
   final int score;
@@ -40,12 +42,58 @@ class CompletedQuizPage extends StatefulWidget {
 class CompletedQuizPageState extends State<CompletedQuizPage> {
   late AudioPlayer _audioPlayer;
 
+  // Dictionnaire pour la localisation
+  Map<String, Map<String, String>> localizedValues = {
+    'en': {
+      'quizTitle': 'Quiz',
+      'subtitle': 'Great job finishing the quiz!',
+      'quizCompleted': 'Quiz Completed!',
+      'yourScore': 'Your Score',
+      'completed': 'Completed',
+      'total': 'Total',
+      'correct': 'Correct',
+      'wrong': 'Wrong',
+      'playAgain': 'Play Again',
+      'home': 'Home',
+      'scores': 'Scores',
+      'errorSound': 'Error playing sound',
+      'errorCategory': 'Error: Category not specified',
+      'errorUser': 'Error: No user logged in',
+      'errorFirestore': 'Error saving score',
+      'errorPermission': 'Error: Permission denied. Check Firestore rules.',
+      'errorNetwork': 'Error: Network connection issue.',
+    },
+    'fr': {
+      'quizTitle': 'Quiz',
+      'subtitle': 'Excellent travail pour avoir terminé le quiz!',
+      'quizCompleted': 'Quiz Terminé!',
+      'yourScore': 'Votre Score',
+      'completed': 'Terminé',
+      'total': 'Total',
+      'correct': 'Correct',
+      'wrong': 'Incorrect',
+      'playAgain': 'Rejouer',
+      'home': 'Accueil',
+      'scores': 'Scores',
+      'errorSound': 'Erreur de lecture du son',
+      'errorCategory': 'Erreur: Catégorie non spécifiée',
+      'errorUser': 'Erreur: Aucun utilisateur connecté',
+      'errorFirestore': 'Erreur lors de la sauvegarde du score',
+      'errorPermission': 'Erreur: Permission refusée. Vérifiez les règles Firestore.',
+      'errorNetwork': 'Erreur: Problème de connexion réseau.',
+    },
+  };
+
+  String get currentLanguage => 'fr'; // Vous pouvez changer cette valeur ou la récupérer d'un provider
+
+  String _translate(String key) {
+    return localizedValues[currentLanguage]?[key] ?? key;
+  }
+
   @override
   void initState() {
     super.initState();
-    // Initialize AudioPlayer
     _audioPlayer = AudioPlayer();
-    // Play bell.mp3 after initial render
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _playBellSound();
       _saveOrUpdateScoreToFirestore(context);
@@ -58,7 +106,12 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
     } catch (e) {
       debugPrint('Error playing audio: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error playing sound')),
+        SnackBar(
+          content: Text(_translate('errorSound')),
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? Colors.grey[800]
+              : Colors.white,
+        ),
       );
     }
   }
@@ -67,7 +120,12 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
     try {
       if (widget.category == null || widget.category!.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error: Category not specified')),
+          SnackBar(
+            content: Text(_translate('errorCategory')),
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey[800]
+                : Colors.white,
+          ),
         );
         return;
       }
@@ -75,14 +133,18 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
       final userId = FirebaseAuth.instance.currentUser?.uid;
       if (userId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error: No user logged in')),
+          SnackBar(
+            content: Text(_translate('errorUser')),
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey[800]
+                : Colors.white,
+          ),
         );
         return;
       }
 
       final CollectionReference scores = FirebaseFirestore.instance.collection('scores');
 
-      // Check for existing score for this category and user
       final QuerySnapshot existingScores = await scores
           .where('category', isEqualTo: widget.category)
           .where('userId', isEqualTo: userId)
@@ -90,7 +152,6 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
           .get();
 
       if (existingScores.docs.isNotEmpty) {
-        // Update existing document
         final docId = existingScores.docs.first.id;
         await scores.doc(docId).update({
           'score': widget.score,
@@ -100,7 +161,6 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
           'timestamp': FieldValue.serverTimestamp(),
         });
       } else {
-        // Create new document
         await scores.add({
           'category': widget.category,
           'userId': userId,
@@ -112,15 +172,19 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
         });
       }
     } catch (e) {
-      // Detailed error message
-      String errorMessage = 'Error saving score';
+      String errorMessage = _translate('errorFirestore');
       if (e.toString().contains('permission-denied')) {
-        errorMessage = 'Error: Permission denied. Check Firestore rules.';
+        errorMessage = _translate('errorPermission');
       } else if (e.toString().contains('network')) {
-        errorMessage = 'Error: Network connection issue.';
+        errorMessage = _translate('errorNetwork');
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? Colors.grey[800]
+              : Colors.white,
+        ),
       );
       debugPrint('Firestore error: $e');
     }
@@ -128,7 +192,9 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Safe completion calculation with debug logging
+    final themeService = Provider.of<ThemeService>(context);
+    final isDarkMode = themeService.isDarkMode;
+
     double completion = 0.0;
     if (widget.totalQuestions == 0) {
       debugPrint('Warning: totalQuestions is 0, setting completion to 0');
@@ -141,9 +207,9 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: isDarkMode ? Colors.grey[900] : Colors.grey.shade100,
       appBar: AppBar(
-        backgroundColor: Colors.grey.shade100,
+        backgroundColor: isDarkMode ? Colors.grey[850] : Colors.grey.shade100,
         elevation: 0,
         title: Row(
           children: [
@@ -153,24 +219,27 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    "Quiz: ${widget.category ?? 'Unknown'}",
+                    "${_translate('quizTitle')}: ${widget.category ?? 'Unknown'}",
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      color: Colors.black,
+                      color: isDarkMode ? Colors.white : Colors.black87,
                     ),
                   ),
                   Text(
-                    "Great job finishing the quiz!",
+                    _translate('subtitle'),
                     style: GoogleFonts.poppins(
                       fontSize: 13,
-                      color: Colors.black54,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
                     ),
                   ),
                 ],
               ),
             ),
           ],
+        ),
+        iconTheme: IconThemeData(
+          color: isDarkMode ? Colors.white : Colors.black87,
         ),
       ),
       body: SafeArea(
@@ -179,19 +248,20 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
           child: Column(
             children: [
               Card(
-                color: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                color: isDarkMode ? Colors.grey[800] : Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
                 elevation: 3,
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
                       Text(
-                        "Quiz Completed!",
+                        _translate('quizCompleted'),
                         style: GoogleFonts.poppins(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: isDarkMode ? Colors.white : Colors.black87,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -202,9 +272,9 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
                           child: Column(
                             children: [
                               Text(
-                                'Your Score',
+                                _translate('yourScore'),
                                 style: GoogleFonts.poppins(
-                                  color: Colors.black54,
+                                  color: isDarkMode ? Colors.white70 : Colors.black54,
                                   fontSize: 16,
                                 ),
                               ),
@@ -225,10 +295,14 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildResultItem("Completed", "${(completion * 100).toInt()}%", Colors.amber),
-                          _buildResultItem("Total", "${widget.totalQuestions}", Colors.black87),
-                          _buildResultItem("Correct", "${widget.correct}", Colors.green),
-                          _buildResultItem("Wrong", "${widget.wrong}", Colors.red),
+                          _buildResultItem(_translate('completed'), "${(completion * 100).toInt()}%",
+                              Colors.amber, isDarkMode),
+                          _buildResultItem(_translate('total'), "${widget.totalQuestions}",
+                              isDarkMode ? Colors.white : Colors.black87, isDarkMode),
+                          _buildResultItem(_translate('correct'), "${widget.correct}",
+                              Colors.green, isDarkMode),
+                          _buildResultItem(_translate('wrong'), "${widget.wrong}",
+                              Colors.red, isDarkMode),
                         ],
                       ),
                       const SizedBox(height: 24),
@@ -237,9 +311,9 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
                         runSpacing: 16,
                         alignment: WrapAlignment.center,
                         children: [
-                          _buildActionButton(Icons.replay, "Play Again", context),
-                          _buildActionButton(Icons.home, "Home", context),
-                          _buildActionButton(Icons.military_tech, "Scores", context),
+                          _buildActionButton(Icons.replay, _translate('playAgain'), context, isDarkMode),
+                          _buildActionButton(Icons.home, _translate('home'), context, isDarkMode),
+                          _buildActionButton(Icons.military_tech, _translate('scores'), context, isDarkMode),
                         ],
                       ),
                     ],
@@ -253,7 +327,7 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
     );
   }
 
-  Widget _buildResultItem(String label, String value, Color color) {
+  Widget _buildResultItem(String label, String value, Color color, bool isDarkMode) {
     return Column(
       children: [
         Text(
@@ -269,25 +343,17 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
           label,
           style: GoogleFonts.poppins(
             fontSize: 13,
-            color: Colors.grey.shade600,
+            color: isDarkMode ? Colors.grey[400] : Colors.grey.shade600,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildActionButton(IconData icon, String label, BuildContext context) {
+  Widget _buildActionButton(IconData icon, String label, BuildContext context, bool isDarkMode) {
     return InkWell(
       onTap: () {
-        if (label == "Play Again") {
-          // Log navigation arguments for debugging
-          debugPrint('Navigating to QuestionPage with: '
-              'category=${widget.category}, '
-              'categoryId=${widget.categoryId}, '
-              'difficulty=${widget.difficulty}, '
-              'type=${widget.type}, '
-              'amount=${widget.amount}, '
-              'questions=${widget.questions}');
+        if (label == _translate('playAgain')) {
           Navigator.pushNamed(context, '/QuestionPage', arguments: {
             'category': widget.category,
             'categoryId': widget.categoryId,
@@ -296,9 +362,9 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
             'amount': widget.amount,
             'questions': widget.questions,
           });
-        } else if (label == "Home") {
+        } else if (label == _translate('home')) {
           Navigator.pushNamed(context, '/HomePage');
-        } else if (label == "Scores") {
+        } else if (label == _translate('scores')) {
           Navigator.pushNamed(context, '/profile');
         }
       },
@@ -310,7 +376,7 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDarkMode ? Colors.grey[700] : Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.amber, width: 2),
               ),
@@ -319,7 +385,10 @@ class CompletedQuizPageState extends State<CompletedQuizPage> {
             const SizedBox(height: 8),
             Text(
               label,
-              style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.black87),
+              style: GoogleFonts.poppins(
+                  fontSize: 12.5,
+                  color: isDarkMode ? Colors.white : Colors.black87
+              ),
             ),
           ],
         ),

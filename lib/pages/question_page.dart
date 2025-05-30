@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:html_unescape/html_unescape.dart';
-import 'package:mini_projet/pages/audio_service.dart';
+import 'package:mini_projet/pages/services/audio_service.dart';
 import 'package:mini_projet/pages/completedQuiz_page.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:mini_projet/pages/services/theme_service.dart';
 
 class QuestionPage extends StatefulWidget {
   @override
@@ -185,11 +187,14 @@ class _QuestionPageState extends State<QuestionPage> {
 
   @override
   Widget build(BuildContext context) {
+    final themeService = Provider.of<ThemeService>(context);
+    final isDarkMode = themeService.isDarkMode;
     final unescape = HtmlUnescape();
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: isDarkMode ? Colors.grey[900] : Colors.grey.shade100,
       appBar: AppBar(
-        backgroundColor: Colors.grey.shade100,
+        backgroundColor: isDarkMode ? Colors.grey[850] : Colors.grey.shade100,
         elevation: 0,
         title: Row(
           children: [
@@ -203,14 +208,14 @@ class _QuestionPageState extends State<QuestionPage> {
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      color: Colors.black,
+                      color: isDarkMode ? Colors.white : Colors.black87,
                     ),
                   ),
                   Text(
                     "Let's test your knowledge",
                     style: GoogleFonts.poppins(
                       fontSize: 13,
-                      color: Colors.black54,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
                     ),
                   ),
                 ],
@@ -227,7 +232,8 @@ class _QuestionPageState extends State<QuestionPage> {
       body: isLoading
           ? Center(child: CircularProgressIndicator())
           : errorMessage != null
-          ? Center(child: Text(errorMessage!))
+          ? Center(child: Text(errorMessage!,
+          style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)))
           : SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -235,7 +241,7 @@ class _QuestionPageState extends State<QuestionPage> {
             child: Column(
               children: [
                 Card(
-                  color: Colors.white,
+                  color: isDarkMode ? Colors.grey[800] : Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   elevation: 3,
                   child: Padding(
@@ -246,45 +252,58 @@ class _QuestionPageState extends State<QuestionPage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            _buildScore("Correct", correctCount, Colors.green),
+                            _buildScore("Correct", correctCount, Colors.green, isDarkMode),
                             CircularPercentIndicator(
                               radius: 30.0,
                               lineWidth: 8.0,
                               percent: _timeRemaining / 30,
                               center: Text(
                                 "$_timeRemaining",
-                                style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.bold,
+                                  color: isDarkMode ? Colors.white : Colors.black87,
+                                ),
                               ),
                               progressColor: Colors.amber,
-                              backgroundColor: Colors.grey.shade200,
+                              backgroundColor: isDarkMode ? Colors.white : Colors.grey,
                               circularStrokeCap: CircularStrokeCap.round,
                             ),
-                            _buildScore("Wrong", incorrectCount, Colors.red),
+                            _buildScore("Wrong", incorrectCount, Colors.red, isDarkMode),
                           ],
                         ),
                         SizedBox(height: 20),
                         Text(
                           "Question ${currentQuestionIndex + 1}/${questions.length}",
-                          style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amber),
+                          style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.amber
+                          ),
                           textAlign: TextAlign.center,
                         ),
                         SizedBox(height: 20),
                         Container(
                           padding: EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: Colors.amber.shade50,
+                            color: isDarkMode
+                                ? Colors.amber.shade900.withOpacity(0.2)
+                                : Colors.amber.shade50,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             unescape.convert(questions[currentQuestionIndex]['question']),
-                            style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w500),
+                            style: GoogleFonts.poppins(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w500,
+                              color: isDarkMode ? Colors.white : Colors.black87,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ),
                         SizedBox(height: 30),
                         ...(questions[currentQuestionIndex]['type'] == 'multiple'
-                            ? _buildMultipleChoices()
-                            : _buildBooleanChoices()),
+                            ? _buildMultipleChoices(isDarkMode)
+                            : _buildBooleanChoices(isDarkMode)),
                       ],
                     ),
                   ),
@@ -297,19 +316,29 @@ class _QuestionPageState extends State<QuestionPage> {
     );
   }
 
-  Widget _buildScore(String label, int value, Color color) {
+  Widget _buildScore(String label, int value, Color color, bool isDarkMode) {
     return Column(
       children: [
         Text(
           value.toString().padLeft(2, '0'),
-          style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: color),
+          style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color
+          ),
         ),
-        Text(label, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey)),
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: isDarkMode ? Colors.grey[400] : Colors.grey
+          ),
+        ),
       ],
     );
   }
 
-  List<Widget> _buildMultipleChoices() {
+  List<Widget> _buildMultipleChoices(bool isDarkMode) {
     final unescape = HtmlUnescape();
     final current = questions[currentQuestionIndex];
     final answers = current['answers'];
@@ -320,21 +349,21 @@ class _QuestionPageState extends State<QuestionPage> {
       final isCorrect = answer == unescape.convert(current['correct_answer']);
 
       Color borderColor = Colors.amber;
-      Color bgColor = Colors.white;
+      Color? bgColor = isDarkMode ? Colors.grey[800] : Colors.white;
       IconData? icon;
       Color? iconColor;
 
       if (selectedIndex != -1) {
         if (isSelected && isCorrect) {
-          bgColor = Colors.green.withOpacity(0.1);
+          bgColor = Colors.green.withOpacity(isDarkMode ? 0.3 : 0.1);
           icon = Icons.check_circle;
           iconColor = Colors.green;
         } else if (isSelected && !isCorrect) {
-          bgColor = Colors.red.withOpacity(0.1);
+          bgColor = Colors.red.withOpacity(isDarkMode ? 0.3 : 0.1);
           icon = Icons.cancel;
           iconColor = Colors.red;
         } else if (isCorrect) {
-          bgColor = Colors.green.withOpacity(0.1);
+          bgColor = Colors.green.withOpacity(isDarkMode ? 0.3 : 0.1);
           icon = Icons.check_circle;
           iconColor = Colors.green;
         }
@@ -351,7 +380,11 @@ class _QuestionPageState extends State<QuestionPage> {
           onTap: selectedIndex == -1 ? () => _showAnswer(index) : null,
           title: Text(
             answer,
-            style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w500),
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              color: isDarkMode ? Colors.white : Colors.black87,
+            ),
           ),
           trailing: icon != null ? Icon(icon, color: iconColor) : null,
           shape: RoundedRectangleBorder(
@@ -363,8 +396,7 @@ class _QuestionPageState extends State<QuestionPage> {
     });
   }
 
-  List<Widget> _buildBooleanChoices() {
-    final current = questions[currentQuestionIndex];
-    return _buildMultipleChoices();
+  List<Widget> _buildBooleanChoices(bool isDarkMode) {
+    return _buildMultipleChoices(isDarkMode);
   }
 }

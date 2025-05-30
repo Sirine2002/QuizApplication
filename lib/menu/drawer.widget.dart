@@ -5,15 +5,23 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mini_projet/pages/services/vibration_service.dart';
 import 'package:provider/provider.dart';
 import 'package:mini_projet/pages/services/theme_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class CustomDrawer extends StatelessWidget {
+class CustomDrawer extends StatefulWidget {
   final String? username;
   final String? email;
 
-   CustomDrawer({Key? key, this.username, this.email}) : super(key: key);
+  const CustomDrawer({Key? key, this.username, this.email}) : super(key: key);
+
+  @override
+  _CustomDrawerState createState() => _CustomDrawerState();
+}
+
+class _CustomDrawerState extends State<CustomDrawer> {
+  String _currentLanguage = 'en';
 
   // Dictionnaire pour la localisation
-  final Map<String, Map<String, String>> localizedValues = {
+  final Map<String, Map<String, String>> _localizedValues = {
     'en': {
       'guest': 'Guest',
       'home': 'Home',
@@ -30,15 +38,27 @@ class CustomDrawer extends StatelessWidget {
     },
   };
 
-  String _translate(String key, String language) {
-    return localizedValues[language]?[key] ?? key;
+  @override
+  void initState() {
+    super.initState();
+    _loadLanguagePreference();
+  }
+
+  Future<void> _loadLanguagePreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _currentLanguage = prefs.getString('language') ?? 'en';
+    });
+  }
+
+  String _translate(String key) {
+    return _localizedValues[_currentLanguage]?[key] ?? key;
   }
 
   @override
   Widget build(BuildContext context) {
     final themeService = Provider.of<ThemeService>(context);
     final isDarkMode = themeService.isDarkMode;
-    final currentLanguage = 'fr'; // À remplacer par votre gestion de langue
 
     return Drawer(
       backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
@@ -57,7 +77,7 @@ class CustomDrawer extends StatelessWidget {
             ),
             accountName: Text(''),
             accountEmail: Text(
-              username ?? _translate('guest', currentLanguage),
+              widget.username ?? _translate('guest'),
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
@@ -67,16 +87,16 @@ class CustomDrawer extends StatelessWidget {
             currentAccountPicture: CircleAvatar(
               backgroundColor: Colors.white,
               child: Icon(
-                  Icons.person,
-                  size: 40,
-                  color: Colors.amber
+                Icons.person,
+                size: 40,
+                color: Colors.amber,
               ),
             ),
           ),
           _buildDrawerItem(
             context,
             icon: Icons.home,
-            title: _translate('home', currentLanguage),
+            title: _translate('home'),
             isDarkMode: isDarkMode,
             onTap: () async {
               await VibrationService.vibrate();
@@ -86,7 +106,7 @@ class CustomDrawer extends StatelessWidget {
           _buildDrawerItem(
             context,
             icon: Icons.person,
-            title: _translate('profile', currentLanguage),
+            title: _translate('profile'),
             isDarkMode: isDarkMode,
             onTap: () async {
               await VibrationService.vibrate();
@@ -97,7 +117,7 @@ class CustomDrawer extends StatelessWidget {
           _buildDrawerItem(
             context,
             icon: Icons.settings,
-            title: _translate('settings', currentLanguage),
+            title: _translate('settings'),
             isDarkMode: isDarkMode,
             onTap: () async {
               await VibrationService.vibrate();
@@ -112,15 +132,15 @@ class CustomDrawer extends StatelessWidget {
           _buildDrawerItem(
             context,
             icon: Icons.logout,
-            title: _translate('logout', currentLanguage),
+            title: _translate('logout'),
             isDarkMode: isDarkMode,
             onTap: () async {
               await VibrationService.vibrate();
               await FirebaseAuth.instance.signOut();
               Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  "/Quiz",
-                      (route) => false
+                context,
+                "/Quiz",
+                    (route) => false,
               );
             },
           ),

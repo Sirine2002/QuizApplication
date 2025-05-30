@@ -270,9 +270,7 @@ class ProfilePageState extends State<ProfilePage> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      setState(() {
-                        _showHistory = !_showHistory;
-                      });
+
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isDarkMode ? Colors.blueGrey[700] : Colors.lightBlueAccent,
